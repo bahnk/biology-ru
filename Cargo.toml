@@ -4,3 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+regex = "1"
+reqwest = { version = "0.11", features = ["blocking"] }
+diesel = { version = "2.2.4", features = ["sqlite"] }
+
+[[bin]]
+name = "uniprot_similar_db"
+path = "src/bin/uniprot_similar_db.rs"
