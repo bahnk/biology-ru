@@ -6,12 +6,12 @@ CREATE TABLE uniprot_entries (
   entry_name VARCHAR(100) NOT NULL,
 
   -- Mass, mass
-  mass INTEGER NOT NULL,
+  mass INTEGER,
 
   -- Length, length
-  seq_length INTEGER NOT NULL,
+  seq_length INTEGER,
 
   -- Similarity family
-  family VARCHAR NOT NULL,
+  family VARCHAR,
   FOREIGN KEY (family) REFERENCES uniprot_families(name)
 )

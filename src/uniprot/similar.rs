@@ -1,6 +1,6 @@
 use thiserror::Error;
 use regex::Regex;
-use reqwest::Error;
+//use reqwest::Error;
 use reqwest::blocking::{get, Response};
 
 #[derive(Error, Debug)]
