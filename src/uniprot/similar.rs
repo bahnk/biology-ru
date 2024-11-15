@@ -1,11 +1,11 @@
-use thiserror::Error;
+use diesel::prelude::*;
 use log::info;
 use regex::Regex;
 use reqwest::blocking::{get, Response};
-use diesel::prelude::*;
+use thiserror::Error;
 
-use crate::uniprot::models::*;
 use crate::schema::*;
+use crate::uniprot::models::*;
 
 #[derive(Error, Debug)]
 pub enum EntryError {
@@ -50,12 +50,11 @@ fn get_line_range(lines: &Vec<String>) -> (usize, usize) {
 }
 
 pub fn get_similar_entries(url: &str) -> Result<Vec<UniprotEntry>, EntryError> {
-
     let lines = fetch_and_parse(url);
 
     // Need to improve error handling
     if lines.len() < 17 {
-        return Err(EntryError::InsufficientData)
+        return Err(EntryError::InsufficientData);
     }
 
     let (first_line, last_line) = get_line_range(&lines);
@@ -96,7 +95,7 @@ pub fn get_similar_entries(url: &str) -> Result<Vec<UniprotEntry>, EntryError> {
                     .map(|m| m.as_str().to_string())
                     .unwrap_or_else(|| "".to_string());
 
-                let entry = UniprotEntry{
+                let entry = UniprotEntry {
                     family: family.clone(),
                     entry_name: entry_name.clone(),
                     accession_number: accession_number.clone(),
@@ -130,17 +129,18 @@ pub fn filter_by_species(
 
 pub fn insert_entries(
     entries: &[UniprotEntry],
-    connection: &mut SqliteConnection
+    connection: &mut SqliteConnection,
 ) -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting to insert {} entries", entries.len());
 
     for (index, entry) in entries.iter().enumerate() {
-
         if index % 1000 == 0 {
             info!("Inserted {0}/{1}", index, entries.len());
         }
 
-        let family = UniprotFamily{ name: entry.family.clone() };
+        let family = UniprotFamily {
+            name: entry.family.clone(),
+        };
 
         diesel::insert_into(uniprot_families::table)
             .values(&family)

@@ -18,7 +18,4 @@ diesel::table! {
 
 diesel::joinable!(uniprot_entries -> uniprot_families (family));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    uniprot_entries,
-    uniprot_families,
-);
+diesel::allow_tables_to_appear_in_same_query!(uniprot_entries, uniprot_families,);

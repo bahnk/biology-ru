@@ -1,16 +1,12 @@
-use std::path::PathBuf;
-use env_logger;
-use dotenvy::dotenv;
-use config::{Config, ConfigBuilder, File, Environment};
-use config::builder::DefaultState;
 use clap::Parser;
+use config::builder::DefaultState;
+use config::{Config, ConfigBuilder, Environment, File};
 use diesel::prelude::*;
+use dotenvy::dotenv;
+use env_logger;
+use std::path::PathBuf;
 
-use biology_ru::uniprot::similar::{
-    insert_entries,
-    get_similar_entries,
-    filter_by_species,
-};
+use biology_ru::uniprot::similar::{filter_by_species, get_similar_entries, insert_entries};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -19,9 +15,7 @@ struct Args {
     config: PathBuf,
 }
 
-fn establish_connection(
-    settings: &Config
-) -> Result<SqliteConnection, Box<dyn std::error::Error>> {
+fn establish_connection(settings: &Config) -> Result<SqliteConnection, Box<dyn std::error::Error>> {
     let database_url: String = settings.get("DATABASE_URL")?;
     let connection = SqliteConnection::establish(&database_url)
         .map_err(|e| format!("Error connecting to {}: {}", database_url, e))?;
