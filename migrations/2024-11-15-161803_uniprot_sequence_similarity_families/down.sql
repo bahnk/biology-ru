@@ -1,0 +1,1 @@
+DROP TABLE uniprot_sequence_similarity_families
