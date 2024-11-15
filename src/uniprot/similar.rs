@@ -1,13 +1,14 @@
 use thiserror::Error;
+use log::info;
 use regex::Regex;
-//use reqwest::Error;
 use reqwest::blocking::{get, Response};
+use diesel::prelude::*;
+
+use crate::uniprot::models::*;
+use crate::schema::*;
 
 #[derive(Error, Debug)]
 pub enum EntryError {
-    //#[error("Network error occured while fetching data: {0}")]
-    //NetworkError(#[from] reqwest::Error),
-
     #[error("Regex pattern error: {0}")]
     RegexError(#[from] regex::Error),
 
@@ -48,7 +49,7 @@ fn get_line_range(lines: &Vec<String>) -> (usize, usize) {
     (find_first_line(lines), find_last_line(lines))
 }
 
-pub fn get_similar_entries(url: &str) -> Result<Vec<(String, String, String)>, EntryError> {
+pub fn get_similar_entries(url: &str) -> Result<Vec<UniprotEntry>, EntryError> {
 
     let lines = fetch_and_parse(url);
 
@@ -62,7 +63,7 @@ pub fn get_similar_entries(url: &str) -> Result<Vec<(String, String, String)>, E
     let family_pattern = Regex::new(r"(^\S.*)")?;
     let entry_pattern = Regex::new(r"^(?P<entry_name>[^(]+)\((?P<accession_number>[^)]+)\)$")?;
 
-    let mut entries: Vec<(String, String, String)> = Vec::new();
+    let mut entries: Vec<UniprotEntry> = Vec::new();
     let mut family = String::new();
 
     for line in &lines[first_line..last_line] {
@@ -95,12 +96,71 @@ pub fn get_similar_entries(url: &str) -> Result<Vec<(String, String, String)>, E
                     .map(|m| m.as_str().to_string())
                     .unwrap_or_else(|| "".to_string());
 
-                entries.push((
-                    family.clone(), entry_name.clone(), accession_number.clone()
-                ));
+                let entry = UniprotEntry{
+                    family: family.clone(),
+                    entry_name: entry_name.clone(),
+                    accession_number: accession_number.clone(),
+                };
+                entries.push(entry);
             }
         }
     }
 
     Ok(entries)
+}
+
+pub fn filter_by_species(
+    entries: &[UniprotEntry],
+    species: &[String],
+) -> Result<Vec<UniprotEntry>, regex::Error> {
+    let joined = species.join("|");
+    let regex_pattern = format!("[^_]+_({})$", joined);
+    let regex = Regex::new(&regex_pattern)?;
+
+    let mut selected_entries: Vec<UniprotEntry> = Vec::new();
+
+    for entry in entries {
+        if regex.is_match(&entry.entry_name) {
+            selected_entries.push(entry.clone());
+        }
+    }
+
+    Ok(selected_entries)
+}
+
+pub fn insert_entries(
+    entries: &[UniprotEntry],
+    connection: &mut SqliteConnection
+) -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting to insert {} entries", entries.len());
+
+    for (index, entry) in entries.iter().enumerate() {
+
+        if index % 1000 == 0 {
+            info!("Inserted {0}/{1}", index, entries.len());
+        }
+
+        let family = UniprotFamily{ name: entry.family.clone() };
+
+        diesel::insert_into(uniprot_families::table)
+            .values(&family)
+            .on_conflict(uniprot_families::name)
+            .do_update()
+            .set(uniprot_families::name.eq(family.name.clone()))
+            .execute(connection)?;
+
+        diesel::insert_into(uniprot_entries::table)
+            .values(entry)
+            .on_conflict(uniprot_entries::accession_number)
+            .do_update()
+            .set((
+                uniprot_entries::accession_number.eq(entry.accession_number.clone()),
+                uniprot_entries::entry_name.eq(entry.entry_name.clone()),
+                uniprot_entries::family.eq(entry.family.clone()),
+            ))
+            .execute(connection)?;
+    }
+
+    info!("Finishing inserting all entries");
+    Ok(())
 }

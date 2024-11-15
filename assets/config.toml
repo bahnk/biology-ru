@@ -1,0 +1,3 @@
+[uniprot.similar]
+url = "http://www.uniprot.org/docs/similar.txt"
+species = ["HUMAN", "MOUSE"]
