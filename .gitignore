@@ -1,3 +1,4 @@
-/target
 *.db
+/target
 diesel.toml
+tmp/*
