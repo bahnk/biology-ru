@@ -21,7 +21,7 @@ mod uaspire {
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use csv::Writer;
 use bio::io::fastq;
 use flate2::read::MultiGzDecoder;
@@ -72,7 +72,12 @@ fn process_pairs(
     rec1: &fastq::Record,
     rec2: &fastq::Record,
     results: &mut HashMap<(String, String), u64>,
+    rbs_counts: &mut HashMap<(String, String), HashMap<String, u64>>,
 ) {
+    let barcode_list: HashSet<&str> = [
+        "ATCACG", "CGATGT", "CTTGTA", "GCCAAT", "ACAGTG", "ACTTGA",
+    ].into();
+    ///////////////////////////////////////////////////////////////////////////
     let barcode_len = 6;
     let discriminator_offset = 6;
     ///////////////////////////////////////////////////////////////////////////
@@ -128,6 +133,25 @@ fn process_pairs(
     }
 
     let pair = (barcode1.clone(), barcode2.clone());
+
+    ///////////////////////////////////////////////////////////////////////////
+    let rbs_length = 17;
+
+    if (
+        barcode_list.contains(barcode1.as_str()) &&
+        barcode_list.contains(barcode2.as_str())
+    ) {
+        let rbs = (&seq2[start_pos+10..start_pos+10+rbs_length]).to_string();
+
+        rbs_counts
+            .entry(pair.clone())
+            .or_insert_with(HashMap::new)
+            .entry(rbs)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
+
+    }
+    ///////////////////////////////////////////////////////////////////////////
 
     if results.contains_key(&pair) {
         let count = results.get_mut(&pair).unwrap();
@@ -190,6 +214,9 @@ fn process_fastq(path1: &str, path2: &str, chunk_size: usize) {
     let mut iter2 = reader2.records();
 
     let results = Arc::new(Mutex::new(HashMap::new()));
+    let rbs_counts:
+        Arc<Mutex<HashMap<(String, String), HashMap<String, u64>>>>
+        = Arc::new(Mutex::new(HashMap::new()));
 
     let mut n = 0;
 
@@ -218,6 +245,7 @@ fn process_fastq(path1: &str, path2: &str, chunk_size: usize) {
             .zip(chunk2.par_iter())
             .for_each(|(rec1, rec2)| {
                 let mut results_lock = results.lock().unwrap();
+                let mut rbs_counts_lock = rbs_counts.lock().unwrap();
                 //process_records(
                 //    &rec1.as_ref().unwrap(),
                 //    &rec2.as_ref().unwrap(),
@@ -227,6 +255,7 @@ fn process_fastq(path1: &str, path2: &str, chunk_size: usize) {
                     &rec1.as_ref().unwrap(),
                     &rec2.as_ref().unwrap(),
                     &mut results_lock,
+                    &mut rbs_counts_lock,
                 );
 
             });
@@ -263,6 +292,20 @@ fn process_fastq(path1: &str, path2: &str, chunk_size: usize) {
     }
 
     wtr.flush().expect("Failed to flush CSV writer");
+
+    for ((barcode1, barcode2), rbs_map) in rbs_counts.lock().unwrap().iter() {
+        let mut wtr = Writer::from_path(format!("tmp/rbs/{}_{}.csv", barcode1, barcode2))
+            .expect("Failed to create output CSV file for RBS counts");
+        wtr.write_record(&["RBS", "Count"])
+            .expect("Failed to write RBS CSV header");
+
+        for (rbs, count) in rbs_map {
+            wtr.write_record(&[rbs, &count.to_string()])
+                .expect("Failed to write RBS record to CSV");
+        }
+
+        wtr.flush().expect("Failed to flush RBS CSV writer");
+    }
 
 
 }
