@@ -1,23 +1,3 @@
-use clap::{Parser, Subcommand};
-use tracing_subscriber;
-use rayon::ThreadPoolBuilder;
-
-#[derive(Parser)]
-#[command(name = "fastq")]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    #[command(subcommand)]
-    Uaspire(uaspire::Command),
-}
-
-mod uaspire {
-///////////////////////////////////////////////////////////////////////////////
-
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
@@ -25,48 +5,8 @@ use std::collections::{HashMap, HashSet};
 use csv::Writer;
 use bio::io::fastq;
 use flate2::read::MultiGzDecoder;
-use clap::Parser;
-use clap::Subcommand;
 use rayon::prelude::*;
 use tracing::{info, error};
-
-#[derive(Subcommand, Clone)]
-pub enum Command {
-    Create(CreateFastqCommand),
-    Parse(ParseFastqCommand),
-}
-
-pub fn command(cmd: Command) {
-    match cmd {
-        Command::Create(cmd) => {
-            println!("Creating FASTQ file with name: {}", cmd.path.display());
-        }
-        Command::Parse(cmd) => {
-            process_fastq(
-                &cmd.read1.to_string_lossy(),
-                &cmd.read2.to_string_lossy(),
-                1_000_000,
-            );
-        }
-    }
-}
-
-fn count_records(path1: &str, path2: &str) -> usize {
-    let file1 = File::open(path1).unwrap();
-    let file2 = File::open(path2).unwrap();
-
-    let reader1 = fastq::Reader::new(MultiGzDecoder::new(file1));
-    let reader2 = fastq::Reader::new(MultiGzDecoder::new(file2));
-
-    let count1 = reader1.records().count();
-    let count2 = reader2.records().count();
-
-    if count1 != count2 {
-        error!("The number of records in the two files do not match: {} vs {}", count1, count2);
-    }
-
-    count1
-}
 
 fn process_pairs(
     rec1: &fastq::Record,
@@ -137,10 +77,10 @@ fn process_pairs(
     ///////////////////////////////////////////////////////////////////////////
     let rbs_length = 17;
 
-    if (
+    if
         barcode_list.contains(barcode1.as_str()) &&
         barcode_list.contains(barcode2.as_str())
-    ) {
+    {
         let rbs = (&seq2[start_pos+10..start_pos+10+rbs_length]).to_string();
 
         rbs_counts
@@ -161,6 +101,7 @@ fn process_pairs(
     }
 }
 
+#[allow(dead_code)]
 fn process_records(
     rec1: &fastq::Record,
     rec2: &fastq::Record,
@@ -201,14 +142,14 @@ fn process_records(
     }
 }
 
-fn process_fastq(path1: &str, path2: &str, chunk_size: usize) {
+pub fn process_fastq(path1: &str, path2: &str, chunk_size: usize) {
     info!("Processing FASTQ files: {} and {}", path1, path2);
 
     let file1 = BufReader::new(File::open(path1).unwrap());
     let file2 = BufReader::new(File::open(path2).unwrap());
 
-    let mut reader1 = fastq::Reader::new(MultiGzDecoder::new(file1));
-    let mut reader2 = fastq::Reader::new(MultiGzDecoder::new(file2));
+    let reader1 = fastq::Reader::new(MultiGzDecoder::new(file1));
+    let reader2 = fastq::Reader::new(MultiGzDecoder::new(file2));
 
     let mut iter1 = reader1.records();
     let mut iter2 = reader2.records();
@@ -310,38 +251,3 @@ fn process_fastq(path1: &str, path2: &str, chunk_size: usize) {
 
 }
 
-#[derive(Parser, Clone, Debug)]
-pub struct CreateFastqCommand {
-    #[arg(short, long)]
-    path: std::path::PathBuf,
-}
-
-#[derive(Parser, Clone, Debug)]
-pub struct ParseFastqCommand {
-    #[arg()]
-    read1: std::path::PathBuf,
-    #[arg()]
-    read2: std::path::PathBuf,
-}
-
-///////////////////////////////////////////////////////////////////////////////
-}
-
-
-fn main() {
-    tracing_subscriber::fmt()
-        .compact()
-        .with_max_level(tracing::Level::INFO)
-        .init();
-
-    let cli = Cli::parse();
-
-    ThreadPoolBuilder::new()
-        .num_threads(10)
-        .build_global()
-        .expect("Failed to build thread pool");
-
-    match &cli.command {
-        Commands::Uaspire(cmd) => { uaspire::command(cmd.clone()); }
-    }
-}

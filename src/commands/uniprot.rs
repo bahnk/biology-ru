@@ -1,4 +1,5 @@
-use clap::Parser;
+
+use clap::{Parser, Subcommand};
 use config::builder::DefaultState;
 use config::{Config, ConfigBuilder, Environment, File};
 use diesel::prelude::*;
@@ -6,15 +7,29 @@ use dotenvy::dotenv;
 use env_logger;
 use std::path::PathBuf;
 
-use biology_ru::uniprot::similar::{filter_by_species, get_similar_entries, insert_entries};
+use crate::uniprot::similar::{
+    filter_by_species,
+    get_similar_entries,
+    insert_entries
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    Uniprot(Args),
+}
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-struct Args {
+pub struct Args {
     #[arg(short, long, default_value = "assets/config")]
     config: PathBuf,
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+#[allow(dead_code)]
 fn establish_connection(settings: &Config) -> Result<SqliteConnection, Box<dyn std::error::Error>> {
     let database_url: String = settings.get("DATABASE_URL")?;
     let connection = SqliteConnection::establish(&database_url)
@@ -22,6 +37,7 @@ fn establish_connection(settings: &Config) -> Result<SqliteConnection, Box<dyn s
     Ok(connection)
 }
 
+#[allow(dead_code)]
 fn load_settings(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
     dotenv().ok();
     let config_file = args.config.to_str().ok_or("Invalid config path")?;
@@ -31,6 +47,10 @@ fn load_settings(args: &Args) -> Result<Config, Box<dyn std::error::Error>> {
         .build()?;
 
     Ok(settings)
+}
+
+pub fn command(_cmds: Commands) {
+    println!("Running Uniprot command");
 }
 
 fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
@@ -48,6 +68,7 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args = Args::parse();
