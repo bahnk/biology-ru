@@ -17,6 +17,8 @@ pub struct ParseFastqCommand {
     read1: std::path::PathBuf,
     #[arg()]
     read2: std::path::PathBuf,
+    #[arg(long, short, default_value = "./output")]
+    output_dir: std::path::PathBuf,
 }
 
 
@@ -38,6 +40,7 @@ pub fn command(cmds: Commands) {
                 &cmd.read1.to_string_lossy(),
                 &cmd.read2.to_string_lossy(),
                 1_000_000,
+                &cmd.output_dir.to_string_lossy(),
             );
         }
     }
