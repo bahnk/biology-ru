@@ -49,7 +49,9 @@ fn get_line_range(lines: &Vec<String>) -> (usize, usize) {
     (find_first_line(lines), find_last_line(lines))
 }
 
-pub fn get_similar_entries(url: &str) -> Result<Vec<(UniprotFamily, UniprotEntry)>, EntryError> {
+pub fn get_similar_entries(
+    url: &str,
+) -> Result<Vec<(UniprotFamily, UniprotEntry)>, EntryError> {
     let lines = fetch_and_parse(url);
 
     // Need to improve error handling
@@ -60,7 +62,8 @@ pub fn get_similar_entries(url: &str) -> Result<Vec<(UniprotFamily, UniprotEntry
     let (first_line, last_line) = get_line_range(&lines);
 
     let family_pattern = Regex::new(r"(^\S.*)")?;
-    let entry_pattern = Regex::new(r"^(?P<entry_name>[^(]+)\((?P<accession_number>[^)]+)\)$")?;
+    let entry_pattern =
+        Regex::new(r"^(?P<entry_name>[^(]+)\((?P<accession_number>[^)]+)\)$")?;
 
     let mut entries: Vec<(UniprotFamily, UniprotEntry)> = Vec::new();
     let mut family = String::new();
@@ -147,7 +150,10 @@ pub fn insert_entries(
             .values(family)
             .on_conflict(uniprot_sequence_similarity_families::name)
             .do_update()
-            .set(uniprot_sequence_similarity_families::name.eq(family.name.clone()))
+            .set(
+                uniprot_sequence_similarity_families::name
+                    .eq(family.name.clone()),
+            )
             .execute(connection)?;
 
         diesel::insert_into(uniprot_entries::table)
@@ -155,7 +161,8 @@ pub fn insert_entries(
             .on_conflict(uniprot_entries::accession_number)
             .do_update()
             .set((
-                uniprot_entries::accession_number.eq(entry.accession_number.clone()),
+                uniprot_entries::accession_number
+                    .eq(entry.accession_number.clone()),
                 uniprot_entries::entry_name.eq(entry.entry_name.clone()),
                 uniprot_entries::mass.eq(entry.mass.clone()),
                 uniprot_entries::seq_length.eq(entry.seq_length.clone()),
@@ -167,18 +174,22 @@ pub fn insert_entries(
             family: family.name.clone(),
         };
 
-        diesel::insert_into(belongs_to_uniprot_sequence_similarity_family::table)
-            .values(&belongs_to)
-            .on_conflict((
-                belongs_to_uniprot_sequence_similarity_family::entry,
-                belongs_to_uniprot_sequence_similarity_family::family,
-            ))
-            .do_update()
-            .set((
-                belongs_to_uniprot_sequence_similarity_family::entry.eq(belongs_to.entry.clone()),
-                belongs_to_uniprot_sequence_similarity_family::family.eq(belongs_to.family.clone()),
-            ))
-            .execute(connection)?;
+        diesel::insert_into(
+            belongs_to_uniprot_sequence_similarity_family::table,
+        )
+        .values(&belongs_to)
+        .on_conflict((
+            belongs_to_uniprot_sequence_similarity_family::entry,
+            belongs_to_uniprot_sequence_similarity_family::family,
+        ))
+        .do_update()
+        .set((
+            belongs_to_uniprot_sequence_similarity_family::entry
+                .eq(belongs_to.entry.clone()),
+            belongs_to_uniprot_sequence_similarity_family::family
+                .eq(belongs_to.family.clone()),
+        ))
+        .execute(connection)?;
     }
 
     info!("Finishing inserting all entries");

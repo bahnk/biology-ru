@@ -1,2 +1,2 @@
-pub mod uniprot;
 pub mod uaspire;
+pub mod uniprot;

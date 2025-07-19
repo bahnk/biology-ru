@@ -1,4 +1,3 @@
-
 use clap::{Parser, Subcommand};
 use config::builder::DefaultState;
 use config::{Config, ConfigBuilder, Environment, File};
@@ -8,9 +7,7 @@ use env_logger;
 use std::path::PathBuf;
 
 use crate::uniprot::similar::{
-    filter_by_species,
-    get_similar_entries,
-    insert_entries
+    filter_by_species, get_similar_entries, insert_entries,
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,7 +27,9 @@ pub struct Args {
 ///////////////////////////////////////////////////////////////////////////////
 
 #[allow(dead_code)]
-fn establish_connection(settings: &Config) -> Result<SqliteConnection, Box<dyn std::error::Error>> {
+fn establish_connection(
+    settings: &Config,
+) -> Result<SqliteConnection, Box<dyn std::error::Error>> {
     let database_url: String = settings.get("DATABASE_URL")?;
     let connection = SqliteConnection::establish(&database_url)
         .map_err(|e| format!("Error connecting to {}: {}", database_url, e))?;

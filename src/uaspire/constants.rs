@@ -4,12 +4,14 @@
 pub const MAX_N_COUNT: usize = 6;
 
 // Barcodes
-pub const BARCODES_1: [&str;6] = ["ATCACG", "CGATGT", "CTTGTA", "GCCAAT", "ACAGTG", "ACTTGA"];
-pub const BARCODES_2: [&str;6] = ["ATCACG", "CGATGT", "CTTGTA", "GCCAAT", "ACAGTG", "ACTTGA"];
+pub const BARCODES_1: [&str; 6] =
+    ["ATCACG", "CGATGT", "CTTGTA", "GCCAAT", "ACAGTG", "ACTTGA"];
+pub const BARCODES_2: [&str; 6] =
+    ["ATCACG", "CGATGT", "CTTGTA", "GCCAAT", "ACAGTG", "ACTTGA"];
 pub const BARCODE_LEN: usize = 6;
 
 // Constant region
-pub const CONTSTANT_REGION: &str = "GAGCTCGCAT";
+pub const CONSTANT_REGION: &str = "GAGCTCGCAT";
 pub const CONSTANT_REGION_WINDOW: (usize, usize) = (7, 24);
 
 // Flipped and non-flipped sequences
