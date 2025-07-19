@@ -27,9 +27,9 @@ pub struct ParseFastqCommand {
     output_dir: std::path::PathBuf,
 
     // Chunk and parquet sizes
-    #[arg(long, short, default_value = "10_000")]
+    #[arg(long, short, default_value = "10000")]
     chunk_size: usize,
-    #[arg(long, short, default_value = "10_000")]
+    #[arg(long, short, default_value = "10000")]
     parquet_size: usize,
 }
 
