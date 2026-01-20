@@ -29,3 +29,7 @@ strum_macros = "0.27.1"
 dashmap = "6.1.0"
 parquet = "55.2.0"
 polars = { version = "0.49.1", features = ["lazy", "parquet"] }
+tempfile = "3.24.0"
+toml = "0.9.11"
+serde = "1.0.228"
+polars-io = "0.52.0"

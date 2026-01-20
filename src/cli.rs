@@ -1,14 +1,6 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
 
-use crate::commands;
-
-#[derive(Subcommand, Debug)]
-pub enum Commands {
-    #[command(subcommand)]
-    Uniprot(commands::uniprot::Commands),
-    #[command(subcommand)]
-    Uaspire(commands::uaspire::Commands),
-}
+use crate::commands::Commands;
 
 #[derive(Parser)]
 #[command(
@@ -21,4 +13,9 @@ pub enum Commands {
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+}
+
+
+pub fn run_cli() {
+    let _ = Cli::parse();
 }
